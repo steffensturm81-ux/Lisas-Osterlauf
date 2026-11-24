@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#171b19">
+<title>Lisas Osterlauf-Vorbereitung</title>
+<link rel="manifest" href="app.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top"><a href="#start"><img src="icon-192.png" alt="" width="42" height="42"><span><strong>LISA RUN.</strong><small>Road to 5K</small></span></a><span class="tag">27.03.2027</span></header>
+<main>
+<section id="start">
+  <div class="hero">
+    <p class="eyebrow">5 KM <span> / </span> PADERBORN</p>
+    <h1>Lisas Osterlauf-<wbr>Vorbereitung</h1>
+    <p>Dein Ziel: gesund ankommen. Gehpausen sind erlaubt!</p>
+    <div class="race-date"><strong id="days"></strong><span>27. März 2027</span></div>
+  </div>
+  <div class="grid">
+    <article class="card"><h2>Dein Fortschritt</h2><p id="progressText"></p><progress id="progress" aria-label="Abgeschlossene Einheiten"></progress></article>
+    <article class="card"><h2>Deine nächste Einheit</h2><p id="nextSession"></p><a class="primary" href="#training" id="openTraining">Zum Training</a></article>
+  </div>
+  <article class="card rules"><h2>Deine Regeln</h2><p>So langsam joggen, dass du ganze Sätze sprechen kannst. Drei Einheiten pro Woche mit Ruhetagen dazwischen. Ist eine Woche zu schwer, wiederhole sie. Keine versäumten Einheiten nachholen.</p><p>Bei Brustschmerzen, Schwindel oder ungewöhnlicher Atemnot abbrechen und medizinisch abklären lassen.</p></article>
+</section>
+<section id="plan" hidden>
+  <h1>Dein Trainingsplan</h1><p>18 Wochen · 3 Einheiten pro Woche</p><p>Zum Einsteigen jeweils 5 Min. eingehen und zum Abschluss 4 Min. ausgehen. Am Wettkampftag nach Bedarf.</p>
+  <div id="weeks"></div>
+</section>
+<section id="training" hidden>
+  <h1>Dein Lauf-Timer</h1>
+  <div class="card timer">
+    <label for="session">Trainingseinheit</label><select id="session"></select>
+    <div id="dial">
+      <div class="dial-center">
+        <svg id="runner" viewBox="0 0 72 72" aria-hidden="true">
+          <circle cx="40" cy="12" r="6" fill="currentColor"/>
+          <path d="M36 23 L31 41" />
+          <path class="arm back" d="M36 24 L26 31 L18 25" />
+          <path class="arm" d="M36 24 L45 33 L55 27" />
+          <path class="leg back" d="M31 41 L23 52 L13 54" />
+          <path class="leg" d="M31 41 L44 51 L47 62" />
+        </svg>
+        <div id="phase" role="status"></div>
+        <div id="clock" role="timer">05:00</div>
+        <div id="step"></div>
+      </div>
+    </div>
+    <p id="upNext"></p>
+    <div class="controls"><button class="primary" id="toggle">Start</button><button id="skip">Überspringen</button><button id="reset">Zurücksetzen</button></div>
+    <label class="sound"><input type="checkbox" id="sound" checked> Signalton und Sprachansagen</label>
+    <p class="note">Lass die App während des Trainings geöffnet. Ansagen und Bildschirmsperre hängen von deinem Browser ab.</p>
+  </div>
+</section>
+</main>
+<nav aria-label="Hauptnavigation">
+  <a href="#start"><span aria-hidden="true">⌂</span>Start</a>
+  <a href="#plan"><span aria-hidden="true">▤</span>Trainingsplan</a>
+  <a href="#training"><span aria-hidden="true">◷</span>Training</a>
+</nav>
+</body>
+</html>
