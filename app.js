@@ -50,7 +50,11 @@ const nextSession = () => sessions.find(session => !done[session.key]);
 const sessionName = session => 'Woche ' + (session.week + 1) + ' · ' + session.title;
 const checkboxes = new Map();
 let selected, index = 0, remaining = 0, deadline = 0, startedAt = 0;
-let running = false, started = false, ticker, audio, lock, lockPending = false;
+let running = false, started = false, ticker, lock, lockPending = false;
+let audio, activeVoice, audioReady;
+let cueRevision = 0;
+const voices = new Map();
+const cueKinds = [...Object.keys(labels), 'finished'];
 
 function mark(session, checked) {
   done[session.key] = checked;
@@ -160,32 +164,69 @@ function changeSession(session) {
 function unlockAudio() {
   if (!$('sound').checked) return;
   try {
+    // WebKit can mix an ambient audio session with another app's music.
+    if (navigator.audioSession && navigator.audioSession.type !== 'ambient') {
+      navigator.audioSession.type = 'ambient';
+    }
+  } catch { /* Older browsers use the default Web Audio session. */ }
+
+  try {
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
-    void audio.resume().catch(() => {});
-  } catch { /* Audio is optional. */ }
+    audioReady = audio.resume().catch(() => {});
+    for (const kind of cueKinds) loadVoice(kind);
+  } catch { /* Continue with the visual timer. */ }
 }
 
-function announce(message) {
-  if (!$('sound').checked) return;
-  if (audio?.state === 'running') {
-    const now = audio.currentTime;
-    const oscillator = audio.createOscillator();
-    const gain = audio.createGain();
-    oscillator.frequency.value = 660;
-    gain.gain.setValueAtTime(.14, now);
-    gain.gain.exponentialRampToValueAtTime(.001, now + .18);
-    oscillator.connect(gain).connect(audio.destination);
-    oscillator.start(now);
-    oscillator.stop(now + .2);
+function loadVoice(kind) {
+  if (!voices.has(kind)) {
+    const clip = fetch('./audio/' + kind + '.mp3').then(response => {
+      if (!response.ok) throw new Error('Ansage nicht verfügbar');
+      return response.arrayBuffer();
+    }).then(bytes => audio.decodeAudioData(bytes)).catch(() => {
+      voices.delete(kind);
+      return null;
+    });
+    voices.set(kind, clip);
   }
-  if ('speechSynthesis' in window) {
-    speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(message);
-    speech.lang = 'de-DE';
-    const voice = speechSynthesis.getVoices().find(candidate => candidate.lang === 'de-DE');
-    if (voice) speech.voice = voice;
-    speechSynthesis.speak(speech);
+  return voices.get(kind);
+}
+
+function cancelCue() {
+  cueRevision++;
+  if (activeVoice) {
+    activeVoice.stop();
+    activeVoice = null;
   }
+}
+
+async function announce(kind) {
+  cancelCue();
+  if (!$('sound').checked || !audio) return;
+  const revision = cueRevision;
+  await audioReady;
+  if (revision !== cueRevision || audio.state !== 'running') return;
+
+  const now = audio.currentTime;
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  oscillator.frequency.value = 660;
+  gain.gain.setValueAtTime(.14, now);
+  gain.gain.exponentialRampToValueAtTime(.001, now + .18);
+  oscillator.connect(gain).connect(audio.destination);
+  oscillator.start(now);
+  oscillator.stop(now + .2);
+
+  // Browser speech synthesis can take exclusive audio focus on iOS.
+  const clip = await loadVoice(kind);
+  if (!clip || revision !== cueRevision || audio.state !== 'running') return;
+  const voice = audio.createBufferSource();
+  voice.buffer = clip;
+  voice.connect(audio.destination);
+  voice.onended = () => {
+    if (activeVoice === voice) activeVoice = null;
+  };
+  activeVoice = voice;
+  voice.start(Math.max(audio.currentTime, now + .22));
 }
 
 async function keepAwake() {
@@ -204,7 +245,7 @@ function stop() {
   running = false;
   if (lock) void lock.release().catch(() => {});
   lock = null;
-  window.speechSynthesis?.cancel();
+  cancelCue();
 }
 
 function finish() {
@@ -212,7 +253,7 @@ function finish() {
   index = selected.sequence.length;
   remaining = 0;
   mark(selected, true);
-  announce('Geschafft. Deine Einheit ist gespeichert.');
+  void announce('finished');
   render();
 }
 
@@ -227,7 +268,7 @@ function tick(now = Date.now()) {
       deadline += current().seconds * 1000;
     }
     remaining = deadline - now;
-    if (previous !== index) announce(labels[current().kind]);
+    if (previous !== index) void announce(current().kind);
   }
   render();
 }
@@ -246,7 +287,7 @@ $('toggle').onclick = () => {
   deadline = now + remaining;
   running = true;
   started = true;
-  announce(labels[current().kind]);
+  void announce(current().kind);
   ticker = setInterval(tick, 125);
   void keepAwake();
   render();
@@ -256,7 +297,7 @@ $('skip').onclick = () => {
   if (!current()) { finish(); return; }
   remaining = current().seconds * 1000;
   deadline = Date.now() + remaining;
-  if (running) announce(labels[current().kind]);
+  if (running) void announce(current().kind);
   render();
 };
 $('reset').onclick = () => {
@@ -270,7 +311,7 @@ $('openTraining').onclick = () => {
 $('sound').onchange = () => {
   store('lisa-run-sound', $('sound').checked);
   if ($('sound').checked) unlockAudio();
-  else window.speechSynthesis?.cancel();
+  else cancelCue();
 };
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && running) {

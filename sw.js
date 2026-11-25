@@ -1,6 +1,10 @@
 'use strict';
-const cacheName = 'lisa-run-shell-v1';
-const shell = ['./', './index.html', './style.css', './app.js', './app.webmanifest', './icon-192.png', './icon-512.png'];
+const cacheName = 'lisa-run-shell-v2';
+const shell = [
+  './', './index.html', './style.css', './app.js', './app.webmanifest', './icon-192.png', './icon-512.png',
+  './audio/warm.mp3', './audio/run.mp3', './audio/walk.mp3', './audio/cool.mp3',
+  './audio/race.mp3', './audio/finished.mp3'
+];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(shell)));
 });
